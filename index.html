@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BabyBedtimeTeller — Tuck Them In With a Story Made for Tonight</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700&family=Karla:wght@400;500;700&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --linen: #f1e8da;
+    --linen-2: #e8dcc7;
+    --card: #fffdf8;
+    --sage: #cfe0d1;
+    --sage-line: #9db89f;
+    --blush: #f0c2bd;
+    --blush-line: #d98f88;
+    --duskblue: #cfdbe8;
+    --duskblue-line: #93a8bd;
+    --ochre: #d1954a;
+    --ochre-deep: #a86f34;
+    --rust: #bd5f43;
+    --rust-bg: #f4d2c3;
+    --ink: #3f3229;
+    --ink-soft: #7a6a57;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background: var(--linen); color:var(--ink);
+    font-family:'Karla', sans-serif;
+    background-image: radial-gradient(circle at 1px 1px, rgba(63,50,41,.05) 1px, transparent 0);
+    background-size: 22px 22px;
+  }
+  .wrap{ max-width: 1040px; margin:0 auto; padding: 56px 26px 50px; position:relative; }
+
+  .thread{ position:absolute; left:50%; top:170px; width:6px; height:calc(100% - 340px); transform:translateX(-3px); z-index:0; }
+  .thread svg{ width:100%; height:100%; overflow:visible; }
+
+  .patch{
+    position:relative; border-radius: 26px; border:2.5px dashed var(--sage-line);
+    background: var(--sage); padding: 34px; z-index:1;
+    box-shadow: 0 14px 30px rgba(63,50,41,.07);
+  }
+  .patch.blush{ background:var(--blush); border-color:var(--blush-line); }
+  .patch.duskblue{ background:var(--duskblue); border-color:var(--duskblue-line); }
+  .patch.linen{ background:var(--linen-2); border-color:#c8b79c; }
+  .patch.rust{ background:var(--rust-bg); border-color:var(--rust); }
+
+  .row .patch:first-child{ transform: rotate(-.35deg); }
+  .row .patch:last-child{ transform: rotate(.3deg); }
+  .thread-row .patch:nth-child(1){ transform: rotate(-.6deg); }
+  .thread-row .patch:nth-child(2){ transform: rotate(.5deg); }
+  .thread-row .patch:nth-child(3){ transform: rotate(-.35deg); }
+
+  .tag{
+    position:absolute; top:-16px; left:36px; background:var(--card); border:2px dashed var(--ochre);
+    border-radius:8px; padding: 5px 14px 6px; font-family:'Caveat'; font-weight:600; font-size:1.1rem;
+    color:var(--ochre); transform: rotate(-3deg); box-shadow: 0 4px 10px rgba(63,50,41,.08);
+  }
+  .tag::before{
+    content:""; position:absolute; top:-9px; left:14px; width:8px; height:8px; border-radius:50%;
+    background:var(--card); border:2px solid var(--ochre);
+  }
+
+  .hero{ text-align:left; margin-bottom: 40px; padding: 56px 48px 46px; }
+  h1{
+    font-family:'Bitter', serif; font-weight:700; font-size: clamp(2.1rem, 4.4vw, 3.15rem);
+    line-height:1.14; margin: 8px 0 20px; letter-spacing:-.01em; max-width: 16ch;
+  }
+  .subhead{ font-size:1.08rem; line-height:1.7; color: var(--ink-soft); max-width:52ch; margin:0; }
+
+  /* API key patch */
+  .key-patch{ margin-bottom: 40px; }
+  .key-saved{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .key-saved[hidden], #keyForm[hidden]{ display:none; }
+  .key-saved p{ margin:0; font-weight:700; }
+  .key-saved button{
+    background:none; border:none; text-decoration:underline; text-underline-offset:3px;
+    font-family:'Karla'; font-weight:700; font-size:.9rem; color:var(--ink-soft); cursor:pointer; padding:4px;
+  }
+  .key-row{ display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+  .key-row .field{ flex:1; min-width:220px; margin-bottom:0; }
+  .key-row .cta{ width:auto; margin-top:0; white-space:nowrap; }
+  .key-note{ font-size:.82rem; color:var(--ink-soft); margin: 12px 0 0; line-height:1.5; }
+
+  .row{ display:grid; grid-template-columns: 1.5fr 1fr; gap: 28px; margin-bottom: 40px; align-items:stretch; }
+
+  .field{ margin-bottom:18px; }
+  .field label{ display:block; font-weight:700; font-size:.86rem; margin-bottom:7px; }
+  .field input{
+    width:100%; padding:12px 14px; border-radius:12px; border:2px solid var(--sage-line);
+    background:var(--card); font-family:'Karla'; font-size:1rem; color:var(--ink);
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .field input::placeholder{ color:#a89a86; }
+  .field input:hover{ border-color: #85a688; }
+  .field input:focus{ outline:none; border-color:var(--ochre); box-shadow:0 0 0 3px rgba(209,149,74,.2); }
+
+  .hint{ margin: -6px 0 14px; font-size:.85rem; color:var(--rust); font-weight:700; }
+  .hint::before{ content:"✂ "; }
+
+  .cta{
+    width:100%; margin-top:6px; padding:15px 18px; border:none; border-radius:14px;
+    background: var(--ochre); color:#fff8ee; font-family:'Karla'; font-weight:700; font-size:1rem;
+    cursor:pointer; box-shadow: 0 8px 0 var(--ochre-deep); transition: transform .1s ease, box-shadow .1s ease, background .15s ease;
+  }
+  .cta:hover:not(:disabled){ transform: translateY(2px); box-shadow: 0 6px 0 var(--ochre-deep); }
+  .cta:active:not(:disabled){ transform: translateY(6px); box-shadow: 0 2px 0 var(--ochre-deep); }
+  .cta:focus-visible{ outline:3px solid var(--ink); outline-offset:3px; }
+  .cta:disabled{ cursor:progress; opacity:.85; transform: translateY(6px); box-shadow: 0 2px 0 var(--ochre-deep); }
+
+  .reassure-patch{ display:flex; flex-direction:column; justify-content:center; text-align:left; }
+  .reassure-patch h4{ font-family:'Bitter'; font-size:1.15rem; margin:6px 0 10px; }
+  .reassure-patch p{ font-size:.92rem; line-height:1.6; color: var(--ink-soft); margin:0; }
+
+  .story-stage{ margin-bottom: 40px; }
+  .state{ display:none; }
+  .state.active{ display:block; animation: settle .45s ease both; }
+  @keyframes settle{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:translateY(0);} }
+
+  .hoop{
+    width:196px; height:196px; margin:0 auto 16px; border-radius:50%;
+    border:3px dashed var(--sage-line); display:flex; align-items:center; justify-content:center;
+    padding:22px; text-align:center; background: rgba(255,253,248,.55);
+  }
+  .hoop.loading{ border-color:var(--ochre); animation: spin 2.2s linear infinite; }
+  .hoop p{ font-family:'Caveat'; font-weight:600; font-size:1.2rem; color:var(--ink-soft); margin:0; line-height:1.3; transform: rotate(0deg); }
+  .hoop.loading p{ animation: unspin 2.2s linear infinite; }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+  @keyframes unspin{ to{ transform: rotate(-360deg); } }
+
+  .story{ padding: 44px 46px; }
+  .story .kicker{ font-family:'Caveat'; font-weight:600; font-size:1.2rem; color:var(--ochre); margin: 4px 0 14px; display:block; }
+  .story p.body{ font-family:'Bitter'; font-size:1.14rem; line-height:1.72; margin:0 0 20px; white-space:pre-wrap; }
+  .story-controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .story-controls button{
+    padding:9px 16px; border-radius:10px; border:2px solid var(--ink); background:transparent;
+    font-family:'Karla'; font-weight:700; font-size:.86rem; color:var(--ink); cursor:pointer;
+    transition: background .15s ease, color .15s ease;
+  }
+  .story-controls button:hover{ background: rgba(63,50,41,.08); }
+  .story-controls button.primary{ background:var(--ink); color:var(--linen); }
+  .story-controls button.primary:hover{ background:#2c231b; }
+  .story-controls button:focus-visible{ outline:3px solid var(--ochre-deep); outline-offset:2px; }
+  .story-controls button:disabled{ opacity:.4; cursor:not-allowed; }
+  .download-confirm{ font-family:'Caveat'; font-weight:600; font-size:1.05rem; color:var(--ochre-deep); }
+  .tts-note{ font-size:.85rem; color:var(--ink-soft); margin:0; }
+
+  .thread-row{ display:grid; grid-template-columns: repeat(3,1fr); gap:24px; margin-bottom: 44px; }
+  .thread-row .patch{ padding:26px 22px; text-align:left; }
+  .thread-row h5{ font-family:'Bitter'; font-size:1.05rem; margin: 4px 0 8px; }
+  .thread-row p{ font-size:.88rem; line-height:1.55; color:var(--ink-soft); margin:0; }
+  .stitch-num{ font-family:'Caveat'; font-weight:700; font-size:1.3rem; color:var(--ochre); }
+
+  .error-patch{ margin-bottom: 44px; text-align:left; }
+  .error-patch h4{ font-family:'Bitter'; font-size:1.2rem; margin: 6px 0 10px; color: var(--ink); }
+  .error-patch p{ font-size:.95rem; line-height:1.6; color: var(--ink-soft); margin: 0 0 20px; max-width:56ch; }
+  .error-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+  .error-actions button{
+    padding:11px 18px; border-radius:12px; font-family:'Karla'; font-weight:700; font-size:.9rem; cursor:pointer;
+  }
+  .error-actions .primary{ border:none; background:var(--rust); color:#fff6f1; }
+  .error-actions .secondary{ border:2px solid var(--rust); background:transparent; color:var(--rust); }
+
+  footer{ text-align:center; font-family:'Caveat'; font-weight:600; font-size:1.15rem; color:var(--ink-soft); padding: 10px 0 20px; }
+
+  @media (max-width: 860px){
+    .row{ grid-template-columns: 1fr; }
+    .thread-row{ grid-template-columns: 1fr; }
+    .thread{ display:none; }
+    .hero{ padding: 42px 28px 36px; }
+    .story{ padding:32px 26px; }
+  }
+  @media (max-width: 480px){
+    .wrap{ padding: 40px 16px 36px; }
+    .patch{ padding: 26px; border-radius:20px; }
+    .hero{ padding: 34px 22px 30px; }
+    .tag{ left:20px; font-size:1rem; }
+    .row .patch, .thread-row .patch{ transform:none; }
+    .key-row{ flex-direction:column; align-items:stretch; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .hoop.loading, .hoop.loading p{ animation:none; }
+    .state.active{ animation:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="thread" aria-hidden="true">
+    <svg viewBox="0 0 6 1000" preserveAspectRatio="none">
+      <path d="M3,0 C6,120 0,180 3,300 C6,420 0,480 3,600 C6,720 0,780 3,1000"
+        stroke="#c8895a" stroke-width="3" stroke-dasharray="10 9" stroke-linecap="round" fill="none" opacity=".55"/>
+    </svg>
+  </div>
+
+  <div class="patch linen hero">
+    <span class="tag">handmade nightly</span>
+    <h1>Tuck them in with a story made just for tonight.</h1>
+    <p class="subhead">Add a name and a little idea, and a soft new story gets stitched together in seconds — read aloud so you can dim the lights and just be there.</p>
+  </div>
+
+  <div class="patch key-patch" id="keyPatch">
+    <span class="tag">the key</span>
+    <div id="keySaved" class="key-saved" hidden>
+      <p>🔑 Key saved — ready to stitch a story.</p>
+      <button id="changeKeyBtn" type="button">Change key</button>
+    </div>
+    <div id="keyForm">
+      <div class="key-row">
+        <div class="field">
+          <label for="apiKey">Your Claude API key</label>
+          <input id="apiKey" type="password" placeholder="sk-ant-...">
+        </div>
+        <button class="cta" id="saveKeyBtn" type="button">Save key</button>
+      </div>
+      <p class="key-note">Stored only in this browser (localStorage) — never written into this site's code, never sent anywhere except Anthropic's API. Get a key at console.anthropic.com.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="patch">
+      <span class="tag">the pattern</span>
+      <div class="field">
+        <label for="name">Little one's name</label>
+        <input id="name" type="text" placeholder="Zoe" maxlength="50">
+      </div>
+      <div class="field">
+        <label for="theme">Tonight's idea</label>
+        <input id="theme" type="text" placeholder="a mermaid with a very shy seahorse" maxlength="200">
+      </div>
+      <p class="hint" id="hint" hidden>What should tonight's story be about?</p>
+      <button class="cta" id="generateBtn">Stitch tonight's story</button>
+    </div>
+    <div class="patch blush reassure-patch">
+      <span class="tag">the fine print</span>
+      <h4>Nothing to set up</h4>
+      <p>No account to make, nothing to remember — just open, type, and listen. Read aloud automatically, right in your browser.</p>
+    </div>
+  </div>
+
+  <div class="story-stage" aria-live="polite">
+    <div class="state active" id="stage-empty">
+      <div class="hoop"><p>Your story will wait right here, all cozy, once it's ready.</p></div>
+    </div>
+    <div class="state" id="stage-loading">
+      <div class="hoop loading"><p>Weaving stitch by stitch…</p></div>
+    </div>
+    <div class="state" id="stage-success">
+      <div class="patch duskblue story">
+        <span class="kicker" id="storyKicker">tonight's story</span>
+        <p class="body" id="storyBody"></p>
+        <div class="story-controls">
+          <button class="primary" id="playBtn">▶ Play</button>
+          <button id="pauseBtn">⏸ Pause</button>
+          <button id="downloadBtn">⬇ Download</button>
+          <span class="download-confirm" id="downloadConfirm" hidden>Saved!</span>
+          <span class="tts-note" id="ttsNote" hidden>Audio narration isn't supported in this browser — the story above can be read aloud by you.</span>
+        </div>
+      </div>
+    </div>
+    <div class="state" id="stage-error">
+      <div class="patch rust error-patch">
+        <span class="tag">if a thread snags</span>
+        <h4 id="errorTitle">Something snagged the thread.</h4>
+        <p id="errorMessage">Check your connection and try again — or borrow a story from the mending basket while we sort it out.</p>
+        <div class="error-actions">
+          <button class="primary" id="retryBtn">Try again</button>
+          <button class="secondary" id="basketBtn">Use a story from the basket</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="thread-row">
+    <div class="patch">
+      <span class="stitch-num">i.</span>
+      <h5>You add a spark</h5>
+      <p>A name, and one small idea. Nothing to plan, nothing to write.</p>
+    </div>
+    <div class="patch blush">
+      <span class="stitch-num">ii.</span>
+      <h5>We weave the words</h5>
+      <p>A calm, gentle story arrives in seconds, sized just right for bedtime.</p>
+    </div>
+    <div class="patch duskblue">
+      <span class="stitch-num">iii.</span>
+      <h5>You both drift off</h5>
+      <p>A soft voice reads it aloud, so you can dim the lights and just be there.</p>
+    </div>
+  </div>
+
+  <footer>made small, read softly.</footer>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var STORAGE_KEY = 'bbt_api_key';
+  var MODEL = 'claude-sonnet-5';
+  var WORD_LIMIT = 400;
+
+  var SYSTEM_PROMPT = [
+    'You are a gentle bedtime storyteller for children aged 2-6.',
+    'Write calming, slow-paced, age-appropriate stories that help children wind down for sleep.',
+    'Rules:',
+    '- No scary content, monsters, danger, violence, or conflict that does not resolve peacefully.',
+    '- No screens, devices, or stimulating activities in the story.',
+    '- End the story with the child character peacefully falling asleep or drifting into a dream.',
+    '- Use simple vocabulary suitable for ages 2-6.',
+    '- Write exactly 300-350 words. No more.',
+    '- Do not include a title. Begin the story directly.',
+    '- Tone: warm, slow, soothing - like a voice whispering in a dark room.'
+  ].join('\n');
+
+  var FALLBACK_STORIES = [
+    'Under a wide, sleepy moon, {name} found a meadow where the grass hummed a quiet lullaby every time the wind passed through. {name} lay down among the soft blades and let the humming wrap around like a blanket, until the stars blinked slower and slower and sleep came gently.',
+    'Deep in a calm blue sea, {name} met a little turtle who was learning to float without trying. "Just let the water hold you," the turtle said, and {name} floated too, rocking softly with the tide, eyes growing heavier, until a warm and dreamy sleep carried them both away.',
+    'In a cottage at the edge of a quiet wood, {name} watched fireflies gather by the window, each one blinking a little slower than the last. {name} counted them, one soft blink at a time, until the counting turned into dreaming and the whole room grew still and warm.',
+    'High on a hill, {name} sat wrapped in a woolen blanket watching the clouds drift like slow, sleepy sheep across the darkening sky. Each cloud rolled by a little dimmer than the one before, until the sky itself seemed to yawn, and {name} yawned right along with it, drifting off to sleep.',
+    'In a small boat on a calm, glassy lake, {name} watched the moon\'s reflection ripple gently with each slow paddle. The night birds hummed a soft goodnight song, and the boat rocked like a cradle, until {name}\'s eyes grew too heavy to keep open, and sleep floated in like the quiet tide.'
+  ];
+
+  // ---------- elements ----------
+  var nameInput = document.getElementById('name');
+  var themeInput = document.getElementById('theme');
+  var generateBtn = document.getElementById('generateBtn');
+  var hint = document.getElementById('hint');
+
+  var stageEmpty = document.getElementById('stage-empty');
+  var stageLoading = document.getElementById('stage-loading');
+  var stageSuccess = document.getElementById('stage-success');
+  var stageError = document.getElementById('stage-error');
+  var stages = [stageEmpty, stageLoading, stageSuccess, stageError];
+
+  var storyKicker = document.getElementById('storyKicker');
+  var storyBody = document.getElementById('storyBody');
+  var playBtn = document.getElementById('playBtn');
+  var pauseBtn = document.getElementById('pauseBtn');
+  var downloadBtn = document.getElementById('downloadBtn');
+  var downloadConfirm = document.getElementById('downloadConfirm');
+  var ttsNote = document.getElementById('ttsNote');
+
+  var errorTitle = document.getElementById('errorTitle');
+  var errorMessage = document.getElementById('errorMessage');
+  var retryBtn = document.getElementById('retryBtn');
+  var basketBtn = document.getElementById('basketBtn');
+
+  var keyPatch = document.getElementById('keyPatch');
+  var keySaved = document.getElementById('keySaved');
+  var keyForm = document.getElementById('keyForm');
+  var apiKeyInput = document.getElementById('apiKey');
+  var saveKeyBtn = document.getElementById('saveKeyBtn');
+  var changeKeyBtn = document.getElementById('changeKeyBtn');
+
+  var ttsSupported = ('speechSynthesis' in window);
+  var lastStoryText = '';
+  var lastChildName = '';
+
+  // ---------- API key handling ----------
+  function getApiKey(){ return (localStorage.getItem(STORAGE_KEY) || '').trim(); }
+  function setApiKey(k){ localStorage.setItem(STORAGE_KEY, k); }
+
+  function refreshKeyUI(){
+    if (getApiKey()){
+      keySaved.hidden = false;
+      keyForm.hidden = true;
+    } else {
+      keySaved.hidden = true;
+      keyForm.hidden = false;
+    }
+  }
+  refreshKeyUI();
+
+  saveKeyBtn.addEventListener('click', function(){
+    var v = apiKeyInput.value.trim();
+    if (!v) { apiKeyInput.focus(); return; }
+    setApiKey(v);
+    apiKeyInput.value = '';
+    refreshKeyUI();
+  });
+  changeKeyBtn.addEventListener('click', function(){
+    keySaved.hidden = true;
+    keyForm.hidden = false;
+    apiKeyInput.focus();
+  });
+
+  // ---------- stage switching ----------
+  function showStage(stage){
+    stages.forEach(function(s){ s.classList.remove('active'); });
+    stage.classList.add('active');
+  }
+
+  // ---------- helpers ----------
+  function sanitizeName(raw){
+    return raw.replace(/<[^>]*>/g, '').slice(0, 50).trim();
+  }
+
+  function trimToWordLimit(text, limit){
+    limit = limit || WORD_LIMIT;
+    var words = text.trim().split(/\s+/);
+    if (words.length <= limit) return text.trim();
+    console.warn('Story exceeded ' + limit + ' words (' + words.length + '); trimming.');
+    var truncated = words.slice(0, limit).join(' ');
+    var lastPunct = Math.max(truncated.lastIndexOf('.'), truncated.lastIndexOf('!'), truncated.lastIndexOf('?'));
+    if (lastPunct > 0) truncated = truncated.slice(0, lastPunct + 1);
+    return truncated + ' …and they drifted off into the sweetest of dreams.';
+  }
+
+  function needsGentling(theme){
+    return /scary|monster|ghost|death|kill|haunted|horror|blood|violent/i.test(theme);
+  }
+
+  function renderStory(name, text){
+    lastStoryText = text;
+    lastChildName = name;
+    storyKicker.textContent = 'tonight’s story, for ' + name;
+    storyBody.textContent = text;
+    downloadConfirm.hidden = true;
+    if (!ttsSupported){
+      playBtn.style.display = 'none';
+      pauseBtn.style.display = 'none';
+      ttsNote.hidden = false;
+    }
+  }
+
+  // ---------- Claude API ----------
+  function buildUserMessage(name, theme){
+    var msg = 'Write a bedtime story for a child named ' + name + '.\nThe story should be about: ' + theme + '.';
+    if (needsGentling(theme)){
+      msg += ' Make this theme gentle, safe, and reassuring for a young child.';
+    }
+    return msg;
+  }
+
+  function fetchStory(name, theme, apiKey){
+    var body = {
+      model: MODEL,
+      max_tokens: 700,
+      thinking: { type: 'disabled' },
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: buildUserMessage(name, theme) }]
+    };
+    return fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify(body)
+    }).then(function(res){
+      return res.json().then(function(data){
+        if (!res.ok){
+          var err = new Error((data && data.error && data.error.message) || ('Request failed (' + res.status + ')'));
+          err.status = res.status;
+          throw err;
+        }
+        var block = (data.content || []).find(function(b){ return b.type === 'text'; });
+        if (!block) throw new Error('No story text in response.');
+        return block.text;
+      });
+    });
+  }
+
+  // ---------- generate flow ----------
+  function handleGenerate(){
+    var name = sanitizeName(nameInput.value.trim());
+    var theme = themeInput.value.trim();
+    if (!name || !theme){
+      hint.hidden = false;
+      (name ? themeInput : nameInput).focus();
+      return;
+    }
+    var apiKey = getApiKey();
+    if (!apiKey){
+      keyForm.hidden = false;
+      keySaved.hidden = true;
+      apiKeyInput.focus();
+      return;
+    }
+    hint.hidden = true;
+    generateBtn.disabled = true;
+    generateBtn.textContent = 'Weaving your story…';
+    showStage(stageLoading);
+
+    fetchStory(name, theme, apiKey).then(function(text){
+      var trimmed = trimToWordLimit(text);
+      renderStory(name, trimmed);
+      showStage(stageSuccess);
+      autoSpeak(trimmed);
+    }).catch(function(err){
+      showError(err, name, theme);
+    }).finally(function(){
+      generateBtn.disabled = false;
+      generateBtn.textContent = 'Stitch another story';
+    });
+  }
+
+  function showError(err, name, theme){
+    var status = err && err.status;
+    if (status === 401){
+      errorTitle.textContent = 'That key doesn’t look right.';
+      errorMessage.textContent = 'Double-check the API key below and try again.';
+      keyForm.hidden = false;
+      keySaved.hidden = true;
+    } else if (status === 429){
+      errorTitle.textContent = 'Too many stories, too fast.';
+      errorMessage.textContent = 'Wait a moment and try again — or borrow one from the mending basket.';
+    } else {
+      errorTitle.textContent = 'Something snagged the thread.';
+      errorMessage.textContent = 'Check your connection and try again — or borrow a story from the mending basket while we sort it out.';
+    }
+    retryBtn.onclick = function(){ handleGenerate(); };
+    basketBtn.onclick = function(){
+      var fallbackName = name || sanitizeName(nameInput.value.trim()) || 'little one';
+      var pick = FALLBACK_STORIES[Math.floor(Math.random() * FALLBACK_STORIES.length)];
+      renderStory(fallbackName, pick.replace(/\{name\}/g, fallbackName));
+      showStage(stageSuccess);
+      autoSpeak(lastStoryText);
+    };
+    showStage(stageError);
+  }
+
+  generateBtn.addEventListener('click', handleGenerate);
+
+  // ---------- Web Speech API ----------
+  function voicesReady(){
+    return new Promise(function(resolve){
+      var voices = speechSynthesis.getVoices();
+      if (voices.length) return resolve(voices);
+      var done = false;
+      function finish(){
+        if (done) return;
+        done = true;
+        resolve(speechSynthesis.getVoices());
+      }
+      speechSynthesis.addEventListener('voiceschanged', finish, { once: true });
+      setTimeout(finish, 500);
+    });
+  }
+
+  function pickVoice(voices){
+    if (!voices || !voices.length) return null;
+    var preferredNames = ['Samantha', 'Karen', 'Moira', 'Tessa'];
+    for (var i = 0; i < preferredNames.length; i++){
+      var match = voices.find(function(v){ return v.name.indexOf(preferredNames[i]) !== -1; });
+      if (match) return match;
+    }
+    var enUS = voices.find(function(v){ return v.lang === 'en-US'; });
+    if (enUS) return enUS;
+    var en = voices.find(function(v){ return /^en/i.test(v.lang); });
+    return en || voices[0];
+  }
+
+  function autoSpeak(text){
+    if (!ttsSupported) return;
+    voicesReady().then(function(voices){
+      speechSynthesis.cancel();
+      var utter = new SpeechSynthesisUtterance(text);
+      utter.rate = 0.85;
+      utter.pitch = 0.9;
+      var v = pickVoice(voices);
+      if (v) utter.voice = v;
+      speechSynthesis.speak(utter);
+    });
+  }
+
+  if (ttsSupported){
+    playBtn.addEventListener('click', function(){
+      if (speechSynthesis.paused && speechSynthesis.speaking){
+        speechSynthesis.resume();
+      } else if (lastStoryText) {
+        autoSpeak(lastStoryText);
+      }
+    });
+    pauseBtn.addEventListener('click', function(){
+      if (speechSynthesis.speaking) speechSynthesis.pause();
+    });
+  }
+
+  // ---------- download ----------
+  downloadBtn.addEventListener('click', function(){
+    if (!lastStoryText) return;
+    var blob = new Blob([lastStoryText], { type: 'text/plain' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var dateStr = new Date().toISOString().slice(0, 10);
+    var safeName = (lastChildName || 'story').replace(/[^a-zA-Z0-9]+/g, '-');
+    a.href = url;
+    a.download = 'bedtime-story-' + safeName + '-' + dateStr + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    downloadConfirm.hidden = false;
+    setTimeout(function(){ downloadConfirm.hidden = true; }, 2000);
+  });
+})();
+</script>
+
+</body>
+</html>

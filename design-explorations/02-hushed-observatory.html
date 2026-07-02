@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BabyBedtimeTeller — Somewhere Between Awake and Asleep</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;1,400;1,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: #0b0d14;
+    --panel: #12141f;
+    --panel-2: #171a27;
+    --ember: #e8a464;
+    --ember-dim: #8a6339;
+    --text: #eef0f5;
+    --muted: #7d8296;
+    --hair: rgba(238,240,245,0.09);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--ink); color:var(--text);
+    font-family:'Inter', sans-serif;
+    min-height:100vh; position:relative; overflow-x:hidden;
+  }
+
+  /* pinprick starfield */
+  .stars{ position:fixed; inset:0; z-index:0; opacity:.8;
+    background-image:
+      radial-gradient(1px 1px at 12% 18%, rgba(238,240,245,.9), transparent 60%),
+      radial-gradient(1px 1px at 26% 62%, rgba(238,240,245,.7), transparent 60%),
+      radial-gradient(1.5px 1.5px at 41% 30%, rgba(238,240,245,.85), transparent 60%),
+      radial-gradient(1px 1px at 58% 74%, rgba(238,240,245,.6), transparent 60%),
+      radial-gradient(1px 1px at 70% 12%, rgba(238,240,245,.8), transparent 60%),
+      radial-gradient(1.5px 1.5px at 83% 55%, rgba(238,240,245,.7), transparent 60%),
+      radial-gradient(1px 1px at 92% 82%, rgba(238,240,245,.6), transparent 60%),
+      radial-gradient(1px 1px at 6% 85%, rgba(238,240,245,.55), transparent 60%),
+      radial-gradient(1px 1px at 35% 92%, rgba(238,240,245,.5), transparent 60%),
+      radial-gradient(1px 1px at 48% 8%, rgba(238,240,245,.65), transparent 60%);
+    background-repeat:no-repeat;
+  }
+  .star-twinkle{ animation: twinkle 6s ease-in-out infinite; }
+  @keyframes twinkle{ 0%,100%{opacity:.8;} 50%{opacity:.35;} }
+
+  .wrap{ position:relative; z-index:1; max-width: 720px; margin:0 auto; padding: 100px 28px 60px; text-align:center; }
+
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:.72rem; letter-spacing:.22em; text-transform:uppercase;
+    color: var(--muted); margin: 0 0 34px;
+  }
+  .eyebrow::before{ content:"· "; color:var(--ember); }
+  .eyebrow::after{ content:" ·"; color:var(--ember); }
+
+  h1{
+    font-family:'Newsreader', serif; font-style:italic; font-weight:400;
+    font-size: clamp(2.1rem, 5vw, 3.4rem); line-height:1.18; letter-spacing:-.005em;
+    margin: 0 0 26px;
+  }
+  .subhead{
+    font-size:1.06rem; line-height:1.75; color: var(--muted); max-width:46ch; margin: 0 auto 56px;
+    font-weight:400;
+  }
+
+  /* card */
+  .card{
+    background: var(--panel); border:1px solid var(--hair); border-radius:20px;
+    padding: 40px 40px 34px; text-align:left; margin-bottom: 30px;
+  }
+  .field{ margin-bottom:20px; }
+  .field label{
+    display:block; font-size:.82rem; color:var(--muted); margin-bottom:8px; font-weight:500;
+  }
+  .field input{
+    width:100%; background:var(--ink); border:1px solid var(--hair); border-radius:10px;
+    padding:13px 14px; color:var(--text); font-family:'Inter'; font-size:.98rem;
+  }
+  .field input::placeholder{ color:#4b4f60; }
+  .field input:focus{ outline:none; border-color: var(--ember); box-shadow: 0 0 0 3px rgba(232,164,100,.15); }
+
+  .orb-row{ display:flex; align-items:center; gap:20px; margin-top:28px; justify-content:center; }
+  .orb{
+    width:74px; height:74px; border-radius:50%; border:none; cursor:pointer;
+    background: radial-gradient(circle at 35% 30%, #ffd8a8, var(--ember) 55%, var(--ember-dim) 100%);
+    box-shadow: 0 0 0 6px rgba(232,164,100,.08), 0 0 34px rgba(232,164,100,.45);
+    position:relative; flex:none;
+    animation: glow 4.5s ease-in-out infinite;
+  }
+  @keyframes glow{
+    0%,100%{ box-shadow: 0 0 0 6px rgba(232,164,100,.08), 0 0 34px rgba(232,164,100,.45); }
+    50%{ box-shadow: 0 0 0 10px rgba(232,164,100,.05), 0 0 50px rgba(232,164,100,.65); }
+  }
+  .orb:focus-visible{ outline:2px solid var(--ember); outline-offset:4px; }
+  .orb-label{ font-family:'Newsreader'; font-style:italic; font-size:1.15rem; color:var(--text); }
+  .orb-sub{ font-family:'IBM Plex Mono'; font-size:.72rem; color:var(--muted); margin-top:3px; }
+
+  .colophon{
+    font-family:'IBM Plex Mono', monospace; font-size:.74rem; color:var(--muted);
+    text-align:center; margin: 26px 0 70px; letter-spacing:.02em;
+  }
+  .colophon span{ color:var(--ember); }
+
+  /* story preview */
+  .story{
+    background: var(--panel-2); border:1px solid var(--hair); border-radius:20px;
+    padding: 44px 46px; text-align:left; margin-bottom:70px;
+  }
+  .story .kicker{ font-family:'IBM Plex Mono'; font-size:.7rem; color:var(--muted); letter-spacing:.14em; text-transform:uppercase; margin-bottom:16px; }
+  .story p{ font-family:'Newsreader'; font-size:1.28rem; line-height:1.85; color:#dfe2ea; margin:0; }
+  .story-actions{ display:flex; gap:24px; margin-top:26px; }
+  .story-actions button{
+    background:none; border:none; color:var(--muted); font-family:'Inter'; font-size:.86rem;
+    cursor:pointer; padding:0; border-bottom:1px solid transparent;
+  }
+  .story-actions button:hover{ color:var(--text); border-color:var(--ember); }
+
+  hr.hair{ border:none; border-top:1px solid var(--hair); margin: 0 0 40px; }
+
+  .closing{ font-size:.94rem; color:var(--muted); line-height:1.7; }
+  .closing strong{ color:var(--text); font-weight:500; }
+
+  footer{ text-align:center; font-family:'IBM Plex Mono'; font-size:.72rem; color:#4b4f60; padding: 40px 0 10px; letter-spacing:.05em; }
+
+  @media (max-width: 620px){
+    .wrap{ padding: 70px 20px 40px; }
+    .card{ padding: 28px 24px; }
+    .story{ padding: 30px 26px; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .orb, .star-twinkle{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stars"></div>
+
+<div class="wrap">
+  <p class="eyebrow">quiet technology</p>
+  <h1>Somewhere between awake and asleep.</h1>
+  <p class="subhead">Say a name. Say a theme. A calm new story is written and read aloud — softly, slowly — so the room can go dark and the day can finally end.</p>
+
+  <div class="card">
+    <div class="field">
+      <label for="name">Child's name</label>
+      <input id="name" type="text" placeholder="Leo">
+    </div>
+    <div class="field">
+      <label for="theme">Tonight's theme</label>
+      <input id="theme" type="text" placeholder="a rocket ship that runs out of noise">
+    </div>
+    <div class="orb-row">
+      <button class="orb" aria-label="Begin the story"></button>
+      <div>
+        <div class="orb-label">Begin the story</div>
+        <div class="orb-sub">press, and wait a few quiet seconds</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="colophon">no sign-in <span>·</span> no feed <span>·</span> nothing to remember</p>
+
+  <div class="story">
+    <p class="kicker">tonight, for Leo · ≈340 words · ≈2 min, read aloud</p>
+    <p>The rocket ship had gone as far as rockets go. Past the noisy stars, past the humming moons, until it found a stretch of sky so quiet that Leo's engines finally, gratefully, went still…</p>
+    <div class="story-actions">
+      <button>Play</button>
+      <button>Pause</button>
+      <button>Download</button>
+    </div>
+  </div>
+
+  <hr class="hair">
+  <p class="closing"><strong>One page. One story.</strong> Then lights out. No history to manage, no library to browse — just tonight's story, told once, and kept only if you choose to download it.</p>
+</div>
+
+<footer>BABYBEDTIMETELLER — FOR THE LAST TEN MINUTES OF THE DAY</footer>
+
+</body>
+</html>

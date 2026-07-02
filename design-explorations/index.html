@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BabyBedtimeTeller — Design Explorations</title>
+<style>
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#1c1c22; color:#eee; padding:48px 24px; }
+  h1{ text-align:center; font-size:1.4rem; font-weight:600; margin-bottom:6px; }
+  p.sub{ text-align:center; color:#999; margin-bottom:44px; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:24px; max-width:1000px; margin:0 auto; }
+  a.card{ display:block; border-radius:16px; padding:28px 24px; text-decoration:none; color:inherit; border:1px solid #333; transition:transform .15s; }
+  a.card:hover{ transform:translateY(-3px); }
+  .a{ background:linear-gradient(160deg,#2b1f3d,#211730); }
+  .b{ background:#0b0d14; border-color:#2a2d3a; }
+  .c{ background:linear-gradient(160deg,#f1e8da,#cfe0d1); color:#3f3229; }
+  .label{ font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; opacity:.6; margin-bottom:10px; }
+  .name{ font-size:1.25rem; font-weight:700; margin-bottom:10px; }
+  .desc{ font-size:.9rem; line-height:1.55; opacity:.85; }
+</style>
+</head>
+<body>
+  <h1>BabyBedtimeTeller — three directions</h1>
+  <p class="sub">Pick one to iterate on. Each is a self-contained static page.</p>
+  <div class="grid">
+    <a class="card a" href="01-papercut-storybook.html">
+      <div class="label">Option A</div>
+      <div class="name">Papercut Storybook</div>
+      <div class="desc">Dusk plum sky &amp; cream paper. A literal open-book spread with a die-cut moon window holding the form. Fraunces + Nunito. Warm, whimsical, tactile.</div>
+    </a>
+    <a class="card b" href="02-hushed-observatory.html">
+      <div class="label">Option B</div>
+      <div class="name">Hushed Observatory</div>
+      <div class="desc">Near-black with pinprick stars and a single glowing ember accent. A nightlight-orb CTA is the only warmth on the page. Newsreader italic + Inter + mono captions. Spare, editorial, quiet.</div>
+    </a>
+    <a class="card c" href="03-stitched-nursery.html">
+      <div class="label">Option C</div>
+      <div class="name">Stitched Nursery</div>
+      <div class="desc">Daylight linen, sage &amp; blush patchwork quilt with dashed stitch borders and a hand-stitched thread trail connecting each patch. Bitter slab + Karla + Caveat tags. Cozy, tactile, handmade.</div>
+    </a>
+  </div>
+</body>
+</html>

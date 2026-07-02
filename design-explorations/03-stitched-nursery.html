@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BabyBedtimeTeller — Tuck Them In With a Story Made for Tonight</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700&family=Karla:wght@400;500;700&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --linen: #f1e8da;
+    --linen-2: #e8dcc7;
+    --card: #fffdf8;
+    --sage: #cfe0d1;
+    --sage-line: #9db89f;
+    --blush: #f0c2bd;
+    --blush-line: #d98f88;
+    --duskblue: #cfdbe8;
+    --duskblue-line: #93a8bd;
+    --ochre: #d1954a;
+    --ochre-deep: #a86f34;
+    --rust: #bd5f43;
+    --rust-bg: #f4d2c3;
+    --ink: #3f3229;
+    --ink-soft: #7a6a57;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background: var(--linen); color:var(--ink);
+    font-family:'Karla', sans-serif;
+    background-image: radial-gradient(circle at 1px 1px, rgba(63,50,41,.05) 1px, transparent 0);
+    background-size: 22px 22px;
+  }
+  .wrap{ max-width: 1040px; margin:0 auto; padding: 56px 26px 50px; position:relative; }
+
+  /* thread trail */
+  .thread{ position:absolute; left:50%; top:170px; width:6px; height:calc(100% - 320px); transform:translateX(-3px); z-index:0; }
+  .thread svg{ width:100%; height:100%; overflow:visible; }
+
+  .patch{
+    position:relative; border-radius: 26px; border:2.5px dashed var(--sage-line);
+    background: var(--sage); padding: 34px; z-index:1;
+    box-shadow: 0 14px 30px rgba(63,50,41,.07);
+  }
+  .patch.blush{ background:var(--blush); border-color:var(--blush-line); }
+  .patch.duskblue{ background:var(--duskblue); border-color:var(--duskblue-line); }
+  .patch.linen{ background:var(--linen-2); border-color:#c8b79c; }
+  .patch.rust{ background:var(--rust-bg); border-color:var(--rust); }
+
+  /* gentle quilt imperfection: nothing sits perfectly square */
+  .row .patch:first-child{ transform: rotate(-.35deg); }
+  .row .patch:last-child{ transform: rotate(.3deg); }
+  .thread-row .patch:nth-child(1){ transform: rotate(-.6deg); }
+  .thread-row .patch:nth-child(2){ transform: rotate(.5deg); }
+  .thread-row .patch:nth-child(3){ transform: rotate(-.35deg); }
+
+  /* fabric tag, sewn to a patch corner */
+  .tag{
+    position:absolute; top:-16px; left:36px; background:var(--card); border:2px dashed var(--ochre);
+    border-radius:8px; padding: 5px 14px 6px; font-family:'Caveat'; font-weight:600; font-size:1.1rem;
+    color:var(--ochre); transform: rotate(-3deg); box-shadow: 0 4px 10px rgba(63,50,41,.08);
+  }
+  .tag::before{
+    content:""; position:absolute; top:-9px; left:14px; width:8px; height:8px; border-radius:50%;
+    background:var(--card); border:2px solid var(--ochre);
+  }
+
+  /* hero patch */
+  .hero{ text-align:left; margin-bottom: 54px; padding: 56px 48px 46px; }
+  h1{
+    font-family:'Bitter', serif; font-weight:700; font-size: clamp(2.1rem, 4.4vw, 3.15rem);
+    line-height:1.14; margin: 8px 0 20px; letter-spacing:-.01em; max-width: 16ch;
+  }
+  .subhead{ font-size:1.08rem; line-height:1.7; color: var(--ink-soft); max-width:52ch; margin:0; }
+
+  /* two-up row: form + reassure */
+  .row{ display:grid; grid-template-columns: 1.5fr 1fr; gap: 28px; margin-bottom: 54px; align-items:stretch; }
+
+  .field{ margin-bottom:18px; }
+  .field label{ display:block; font-weight:700; font-size:.86rem; margin-bottom:7px; }
+  .field input{
+    width:100%; padding:12px 14px; border-radius:12px; border:2px solid var(--sage-line);
+    background:var(--card); font-family:'Karla'; font-size:1rem; color:var(--ink);
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .field input::placeholder{ color:#a89a86; }
+  .field input:hover{ border-color: #85a688; }
+  .field input:focus{ outline:none; border-color:var(--ochre); box-shadow:0 0 0 3px rgba(209,149,74,.2); }
+
+  .hint{ margin: -6px 0 14px; font-size:.85rem; color:var(--rust); font-weight:700; }
+  .hint::before{ content:"✂ "; }
+
+  .cta{
+    width:100%; margin-top:6px; padding:15px 18px; border:none; border-radius:14px;
+    background: var(--ochre); color:#fff8ee; font-family:'Karla'; font-weight:700; font-size:1rem;
+    cursor:pointer; box-shadow: 0 8px 0 var(--ochre-deep); transition: transform .1s ease, box-shadow .1s ease, background .15s ease;
+  }
+  .cta:hover:not(:disabled){ transform: translateY(2px); box-shadow: 0 6px 0 var(--ochre-deep); }
+  .cta:active:not(:disabled){ transform: translateY(6px); box-shadow: 0 2px 0 var(--ochre-deep); }
+  .cta:focus-visible{ outline:3px solid var(--ink); outline-offset:3px; }
+  .cta:disabled{ cursor:progress; opacity:.85; transform: translateY(6px); box-shadow: 0 2px 0 var(--ochre-deep); }
+
+  .reassure-patch{ display:flex; flex-direction:column; justify-content:center; text-align:left; }
+  .reassure-patch h4{ font-family:'Bitter'; font-size:1.15rem; margin:6px 0 10px; }
+  .reassure-patch p{ font-size:.92rem; line-height:1.6; color: var(--ink-soft); margin:0; }
+
+  /* ---------- story stage: empty / loading / success ---------- */
+  .story-stage{ margin-bottom: 40px; }
+  .state{ display:none; }
+  .state.active{ display:block; animation: settle .45s ease both; }
+  @keyframes settle{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:translateY(0);} }
+
+  .hoop{
+    width:196px; height:196px; margin:0 auto 16px; border-radius:50%;
+    border:3px dashed var(--sage-line); display:flex; align-items:center; justify-content:center;
+    padding:22px; text-align:center; background: rgba(255,253,248,.55);
+  }
+  .hoop.loading{ border-color:var(--ochre); animation: spin 2.2s linear infinite; }
+  .hoop p{ font-family:'Caveat'; font-weight:600; font-size:1.2rem; color:var(--ink-soft); margin:0; line-height:1.3; transform: rotate(0deg); }
+  .hoop.loading p{ animation: unspin 2.2s linear infinite; }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+  @keyframes unspin{ to{ transform: rotate(-360deg); } }
+  .stage-caption{ text-align:center; }
+
+  .story{ padding: 44px 46px; }
+  .story .kicker{ font-family:'Caveat'; font-weight:600; font-size:1.2rem; color:var(--ochre); margin: 4px 0 14px; display:block; }
+  .story p.body{ font-family:'Bitter'; font-size:1.14rem; line-height:1.72; margin:0 0 20px; }
+  .story-controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .story-controls button{
+    padding:9px 16px; border-radius:10px; border:2px solid var(--ink); background:transparent;
+    font-family:'Karla'; font-weight:700; font-size:.86rem; color:var(--ink); cursor:pointer;
+    transition: background .15s ease, color .15s ease;
+  }
+  .story-controls button:hover{ background: rgba(63,50,41,.08); }
+  .story-controls button.primary{ background:var(--ink); color:var(--linen); }
+  .story-controls button.primary:hover{ background:#2c231b; }
+  .story-controls button:focus-visible{ outline:3px solid var(--ochre-deep); outline-offset:2px; }
+  .download-confirm{ font-family:'Caveat'; font-weight:600; font-size:1.05rem; color:var(--ochre-deep); }
+
+  /* three small "the thread" patches */
+  .thread-row{ display:grid; grid-template-columns: repeat(3,1fr); gap:24px; margin-bottom: 44px; }
+  .thread-row .patch{ padding:26px 22px; text-align:left; }
+  .thread-row h5{ font-family:'Bitter'; font-size:1.05rem; margin: 4px 0 8px; }
+  .thread-row p{ font-size:.88rem; line-height:1.55; color:var(--ink-soft); margin:0; }
+  .stitch-num{ font-family:'Caveat'; font-weight:700; font-size:1.3rem; color:var(--ochre); }
+
+  /* error-state swatch (design reference, toggled for review) */
+  .error-toggle-row{ text-align:center; margin: 0 0 20px; }
+  .error-toggle{
+    background:none; border:none; font-family:'Karla'; font-weight:700; font-size:.86rem;
+    color:var(--ink-soft); cursor:pointer; text-decoration:underline; text-underline-offset:3px;
+    padding:6px;
+  }
+  .error-toggle:hover{ color:var(--ink); }
+  .error-toggle:focus-visible{ outline:2px solid var(--ochre-deep); outline-offset:2px; }
+  .error-patch{ margin-bottom: 44px; text-align:left; }
+  .error-patch h4{ font-family:'Bitter'; font-size:1.2rem; margin: 6px 0 10px; color: var(--ink); }
+  .error-patch p{ font-size:.95rem; line-height:1.6; color: var(--ink-soft); margin: 0 0 20px; max-width:56ch; }
+  .error-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+  .error-actions button{
+    padding:11px 18px; border-radius:12px; font-family:'Karla'; font-weight:700; font-size:.9rem; cursor:pointer;
+  }
+  .error-actions .primary{ border:none; background:var(--rust); color:#fff6f1; }
+  .error-actions .secondary{ border:2px solid var(--rust); background:transparent; color:var(--rust); }
+
+  footer{ text-align:center; font-family:'Caveat'; font-weight:600; font-size:1.15rem; color:var(--ink-soft); padding: 10px 0 20px; }
+
+  @media (max-width: 860px){
+    .row{ grid-template-columns: 1fr; }
+    .thread-row{ grid-template-columns: 1fr; }
+    .thread{ display:none; }
+    .hero{ padding: 42px 28px 36px; }
+    .story{ padding:32px 26px; }
+  }
+  @media (max-width: 480px){
+    .wrap{ padding: 40px 16px 36px; }
+    .patch{ padding: 26px; border-radius:20px; }
+    .hero{ padding: 34px 22px 30px; }
+    .tag{ left:20px; font-size:1rem; }
+    .row .patch, .thread-row .patch{ transform:none; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .hoop.loading, .hoop.loading p{ animation:none; }
+    .state.active{ animation:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="thread" aria-hidden="true">
+    <svg viewBox="0 0 6 1000" preserveAspectRatio="none">
+      <path d="M3,0 C6,120 0,180 3,300 C6,420 0,480 3,600 C6,720 0,780 3,1000"
+        stroke="#c8895a" stroke-width="3" stroke-dasharray="10 9" stroke-linecap="round" fill="none" opacity=".55"/>
+    </svg>
+  </div>
+
+  <div class="patch linen hero">
+    <span class="tag">handmade nightly</span>
+    <h1>Tuck them in with a story made just for tonight.</h1>
+    <p class="subhead">Add a name and a little idea, and a soft new story gets stitched together in seconds — read aloud so you can dim the lights and just be there.</p>
+  </div>
+
+  <div class="row">
+    <div class="patch">
+      <span class="tag">the pattern</span>
+      <div class="field">
+        <label for="name">Little one's name</label>
+        <input id="name" type="text" placeholder="Zoe">
+      </div>
+      <div class="field">
+        <label for="theme">Tonight's idea</label>
+        <input id="theme" type="text" placeholder="a mermaid with a very shy seahorse">
+      </div>
+      <p class="hint" id="hint" hidden>What should tonight's story be about?</p>
+      <button class="cta" id="generateBtn">Stitch tonight's story</button>
+    </div>
+    <div class="patch blush reassure-patch">
+      <span class="tag">the fine print</span>
+      <h4>Nothing to set up</h4>
+      <p>No account to make, nothing to remember — just open, type, and listen. Read aloud automatically, right in your browser.</p>
+    </div>
+  </div>
+
+  <div class="story-stage" aria-live="polite">
+    <div class="state active" id="stage-empty">
+      <div class="hoop"><p>Your story will wait right here, all cozy, once it's ready.</p></div>
+    </div>
+    <div class="state" id="stage-loading">
+      <div class="hoop loading"><p>Weaving stitch by stitch…</p></div>
+    </div>
+    <div class="state" id="stage-success">
+      <div class="patch duskblue story">
+        <span class="kicker">tonight's story, for <span id="successName">Zoe</span></span>
+        <p class="body">Deep beneath the harbor lights, <span class="successName-inline">Zoe</span> found a seahorse curled so small inside a shell that she almost missed him. "It's alright," she whispered, "the tide is gentle here." And slowly, the little seahorse uncurled, and together they drifted toward sleep…</p>
+        <div class="story-controls">
+          <button class="primary">▶ Play</button>
+          <button>⏸ Pause</button>
+          <button id="downloadBtn">⬇ Download</button>
+          <span class="download-confirm" id="downloadConfirm" hidden>Saved!</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="thread-row">
+    <div class="patch">
+      <span class="stitch-num">i.</span>
+      <h5>You add a spark</h5>
+      <p>A name, and one small idea. Nothing to plan, nothing to write.</p>
+    </div>
+    <div class="patch blush">
+      <span class="stitch-num">ii.</span>
+      <h5>We weave the words</h5>
+      <p>A calm, gentle story arrives in seconds, sized just right for bedtime.</p>
+    </div>
+    <div class="patch duskblue">
+      <span class="stitch-num">iii.</span>
+      <h5>You both drift off</h5>
+      <p>A soft voice reads it aloud, so you can dim the lights and just be there.</p>
+    </div>
+  </div>
+
+  <div class="error-toggle-row">
+    <button class="error-toggle" id="errorToggle" aria-expanded="false" aria-controls="errorPatch">🧵 design note: preview the "something went wrong" state</button>
+  </div>
+  <div class="patch rust error-patch" id="errorPatch" hidden>
+    <span class="tag">if a thread snags</span>
+    <h4>Something snagged the thread.</h4>
+    <p>Check your connection and try again — or borrow a story from the mending basket while we sort it out.</p>
+    <div class="error-actions">
+      <button class="primary">Try again</button>
+      <button class="secondary">Use a story from the basket</button>
+    </div>
+  </div>
+
+  <footer>made small, read softly.</footer>
+
+</div>
+
+<script>
+(function(){
+  var nameInput = document.getElementById('name');
+  var themeInput = document.getElementById('theme');
+  var btn = document.getElementById('generateBtn');
+  var hint = document.getElementById('hint');
+  var stageEmpty = document.getElementById('stage-empty');
+  var stageLoading = document.getElementById('stage-loading');
+  var stageSuccess = document.getElementById('stage-success');
+  var successName = document.getElementById('successName');
+  var successNameInline = document.querySelector('.successName-inline');
+  var downloadBtn = document.getElementById('downloadBtn');
+  var downloadConfirm = document.getElementById('downloadConfirm');
+  var errorToggle = document.getElementById('errorToggle');
+  var errorPatch = document.getElementById('errorPatch');
+
+  function showStage(stage){
+    [stageEmpty, stageLoading, stageSuccess].forEach(function(s){ s.classList.remove('active'); });
+    stage.classList.add('active');
+  }
+
+  btn.addEventListener('click', function(){
+    var name = nameInput.value.trim();
+    var theme = themeInput.value.trim();
+    if(!name || !theme){
+      hint.hidden = false;
+      (name ? themeInput : nameInput).focus();
+      return;
+    }
+    hint.hidden = true;
+    btn.disabled = true;
+    btn.textContent = 'Weaving your story…';
+    showStage(stageLoading);
+    setTimeout(function(){
+      successName.textContent = name;
+      if(successNameInline){ successNameInline.textContent = name; }
+      showStage(stageSuccess);
+      btn.disabled = false;
+      btn.textContent = 'Stitch another story';
+    }, 1500);
+  });
+
+  downloadBtn.addEventListener('click', function(){
+    downloadConfirm.hidden = false;
+    setTimeout(function(){ downloadConfirm.hidden = true; }, 2000);
+  });
+
+  errorToggle.addEventListener('click', function(){
+    var expanded = errorToggle.getAttribute('aria-expanded') === 'true';
+    errorToggle.setAttribute('aria-expanded', String(!expanded));
+    errorPatch.hidden = expanded;
+    if(!expanded){ errorPatch.scrollIntoView({behavior:'smooth', block:'center'}); }
+  });
+})();
+</script>
+
+</body>
+</html>
