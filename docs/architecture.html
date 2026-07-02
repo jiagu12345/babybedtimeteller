@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BabyBedtimeTeller — Architecture &amp; Data Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700&family=Karla:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --linen:#f1e8da; --card:#fffdf8; --ink:#3f3229; --ink-soft:#7a6a57;
+    --sage:#cfe0d1; --sage-line:#9db89f;
+    --blush:#f0c2bd; --blush-line:#d98f88;
+    --duskblue:#cfdbe8; --duskblue-line:#93a8bd;
+    --ochre:#d1954a; --ochre-deep:#a86f34;
+    --rust:#bd5f43; --rust-bg:#f4d2c3;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--linen); color:var(--ink); font-family:'Karla',sans-serif; }
+  .wrap{ max-width:1200px; margin:0 auto; padding:52px 26px 70px; }
+  h1{ font-family:'Bitter',serif; font-weight:700; font-size:clamp(1.7rem,3.4vw,2.5rem); margin:0 0 10px; line-height:1.18; }
+  .lede{ color:var(--ink-soft); font-size:1.05rem; line-height:1.65; max-width:70ch; margin:0 0 40px; }
+  h2{ font-family:'Bitter',serif; font-weight:700; font-size:1.4rem; margin:0 0 18px; }
+  .diagram-card{
+    background:var(--card); border:2px solid #ded2b8; border-radius:20px; padding:20px;
+    box-shadow:0 14px 30px rgba(63,50,41,.08); margin-bottom:56px; overflow-x:auto;
+  }
+  .diagram-card svg{ display:block; width:100%; min-width:1150px; height:auto; }
+  .mono{ font-family:'IBM Plex Mono',monospace; }
+
+  .section{ margin-bottom:48px; }
+  .cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px; }
+  .card{
+    border-radius:16px; padding:24px 26px; border:1.5px solid; background:var(--card);
+  }
+  .card.tradeoff{ border-color:var(--sage-line); }
+  .card.insight{ border-color:var(--duskblue-line); }
+  .card h3{ font-family:'Bitter',serif; font-size:1.05rem; margin:0 0 8px; }
+  .card p{ font-size:.94rem; line-height:1.6; color:var(--ink-soft); margin:0; }
+  .card p + p{ margin-top:8px; }
+
+  table.risk{ width:100%; border-collapse:collapse; background:var(--card); border-radius:16px; overflow:hidden; }
+  table.risk th, table.risk td{ text-align:left; padding:14px 16px; font-size:.92rem; line-height:1.5; vertical-align:top; }
+  table.risk th{ background:var(--rust-bg); color:var(--ink); font-family:'Bitter',serif; font-weight:700; }
+  table.risk td{ border-top:1px solid #eee1c8; color:var(--ink-soft); }
+  table.risk tr td:first-child{ color:var(--ink); font-weight:700; }
+
+  footer{ text-align:center; color:var(--ink-soft); font-size:.85rem; margin-top:20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>BabyBedtimeTeller — Architecture &amp; Data Flow</h1>
+  <p class="lede">How the app is put together, why it's built this way, and where the risk actually lives. The short version: there is no backend — the entire product is one static HTML file, one external API call, and a handful of client-only fallbacks that keep working when that call fails.</p>
+
+  <div class="diagram-card">
+    <svg viewBox="0 0 1450 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Architecture diagram: Parent, Browser client app, and Anthropic Claude API">
+      <defs>
+        <marker id="arrowInk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#3f3229"/>
+        </marker>
+        <marker id="arrowRust" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#bd5f43"/>
+        </marker>
+        <marker id="arrowOchre" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#a86f34"/>
+        </marker>
+      </defs>
+
+      <!-- ===== zones ===== -->
+      <rect x="20" y="40" width="260" height="780" rx="18" fill="#f0c2bd" opacity=".28"/>
+      <text x="150" y="70" text-anchor="middle" font-family="Bitter,serif" font-weight="700" font-size="15" fill="#7a4d47">PARENT (USER)</text>
+
+      <rect x="300" y="40" width="620" height="780" rx="18" fill="#cfe0d1" opacity=".32"/>
+      <text x="610" y="70" text-anchor="middle" font-family="Bitter,serif" font-weight="700" font-size="15" fill="#3d5a41">BROWSER — index.html (100% client-side, no server)</text>
+
+      <line x1="930" y1="55" x2="930" y2="805" stroke="#7a6a57" stroke-width="2" stroke-dasharray="6 6"/>
+      <text x="930" y="825" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="#7a6a57">trust boundary — device ↔ public internet</text>
+
+      <rect x="940" y="40" width="480" height="780" rx="18" fill="#cfdbe8" opacity=".38"/>
+      <text x="1180" y="70" text-anchor="middle" font-family="Bitter,serif" font-weight="700" font-size="15" fill="#3a4d63">ANTHROPIC CLAUDE API (external, server-side)</text>
+
+      <!-- ===== Zone 1: User boxes ===== -->
+      <g>
+        <rect x="40" y="130" width="220" height="100" rx="12" fill="#fffdf8" stroke="#d98f88" stroke-width="2"/>
+        <text x="150" y="168" text-anchor="middle" font-family="Karla,sans-serif" font-size="13.5" font-weight="700" fill="#3f3229">Parent types name +</text>
+        <text x="150" y="186" text-anchor="middle" font-family="Karla,sans-serif" font-size="13.5" font-weight="700" fill="#3f3229">theme, clicks “Stitch</text>
+        <text x="150" y="204" text-anchor="middle" font-family="Karla,sans-serif" font-size="13.5" font-weight="700" fill="#3f3229">tonight's story”</text>
+      </g>
+
+      <g>
+        <rect x="40" y="470" width="220" height="110" rx="12" fill="#fffdf8" stroke="#d98f88" stroke-width="2"/>
+        <text x="150" y="503" text-anchor="middle" font-family="Karla,sans-serif" font-size="13.5" font-weight="700" fill="#3f3229">Sees the story, hears it</text>
+        <text x="150" y="521" text-anchor="middle" font-family="Karla,sans-serif" font-size="13.5" font-weight="700" fill="#3f3229">read aloud, can Play /</text>
+        <text x="150" y="539" text-anchor="middle" font-family="Karla,sans-serif" font-size="13.5" font-weight="700" fill="#3f3229">Pause / Download</text>
+      </g>
+
+      <g>
+        <rect x="40" y="650" width="220" height="110" rx="12" fill="#fffdf8" stroke="#bd5f43" stroke-width="2"/>
+        <text x="150" y="683" text-anchor="middle" font-family="Karla,sans-serif" font-size="13" font-weight="700" fill="#3f3229">On failure: calm error</text>
+        <text x="150" y="701" text-anchor="middle" font-family="Karla,sans-serif" font-size="13" font-weight="700" fill="#3f3229">message — Retry, or “use</text>
+        <text x="150" y="719" text-anchor="middle" font-family="Karla,sans-serif" font-size="13" font-weight="700" fill="#3f3229">a story from the basket”</text>
+      </g>
+
+      <!-- ===== Zone 2: Browser boxes ===== -->
+      <g>
+        <rect x="340" y="130" width="280" height="90" rx="12" fill="#fffdf8" stroke="#9db89f" stroke-width="2"/>
+        <text x="480" y="160" text-anchor="middle" font-family="Karla,sans-serif" font-size="13.5" font-weight="700" fill="#3f3229">① Story form</text>
+        <text x="480" y="180" text-anchor="middle" font-family="Karla,sans-serif" font-size="12.5" fill="#7a6a57">name + theme fields,</text>
+        <text x="480" y="196" text-anchor="middle" font-family="Karla,sans-serif" font-size="12.5" fill="#7a6a57">client-side validation</text>
+      </g>
+
+      <g>
+        <rect x="660" y="130" width="200" height="90" rx="12" fill="#fffdf8" stroke="#9db89f" stroke-width="2" stroke-dasharray="5 4"/>
+        <text x="760" y="160" text-anchor="middle" font-family="Karla,sans-serif" font-size="13" font-weight="700" fill="#3f3229">🔑 localStorage</text>
+        <text x="760" y="180" text-anchor="middle" font-family="Karla,sans-serif" font-size="12" fill="#7a6a57">Claude API key</text>
+        <text x="760" y="196" text-anchor="middle" font-family="Karla,sans-serif" font-size="12" fill="#7a6a57">(this browser only)</text>
+      </g>
+
+      <g>
+        <rect x="340" y="270" width="540" height="110" rx="14" fill="#fdf3e4" stroke="#a86f34" stroke-width="2.5"/>
+        <text x="610" y="304" text-anchor="middle" font-family="Bitter,serif" font-size="15" font-weight="700" fill="#3f3229">② App logic — vanilla JS state machine</text>
+        <text x="610" y="326" text-anchor="middle" font-family="Karla,sans-serif" font-size="12.5" fill="#7a6a57">idle → loading → success / error</text>
+        <text x="610" y="344" text-anchor="middle" font-family="Karla,sans-serif" font-size="12.5" fill="#7a6a57">the only orchestrator in the whole app — no server-side logic exists</text>
+        <text x="610" y="362" text-anchor="middle" font-family="Karla,sans-serif" font-size="12.5" fill="#7a6a57">anywhere</text>
+      </g>
+
+      <g>
+        <rect x="340" y="430" width="540" height="300" rx="14" fill="none" stroke="#9db89f" stroke-width="2" stroke-dasharray="7 5"/>
+        <text x="610" y="452" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11.5" fill="#3d5a41">CLIENT-ONLY CAPABILITIES — zero network required</text>
+
+        <rect x="360" y="470" width="500" height="70" rx="10" fill="#fffdf8" stroke="#9db89f" stroke-width="1.5"/>
+        <text x="610" y="498" text-anchor="middle" font-family="Karla,sans-serif" font-size="13" font-weight="700" fill="#3f3229">Web Speech API</text>
+        <text x="610" y="516" text-anchor="middle" font-family="Karla,sans-serif" font-size="12" fill="#7a6a57">SpeechSynthesisUtterance — auto-narrate, Play / Pause</text>
+
+        <rect x="360" y="560" width="500" height="70" rx="10" fill="#fffdf8" stroke="#9db89f" stroke-width="1.5"/>
+        <text x="610" y="588" text-anchor="middle" font-family="Karla,sans-serif" font-size="13" font-weight="700" fill="#3f3229">Blob + &lt;a download&gt;</text>
+        <text x="610" y="606" text-anchor="middle" font-family="Karla,sans-serif" font-size="12" fill="#7a6a57">saves the story as a .txt file, no network involved</text>
+
+        <rect x="360" y="650" width="500" height="70" rx="10" fill="#fffdf8" stroke="#a86f34" stroke-width="1.5"/>
+        <text x="610" y="678" text-anchor="middle" font-family="Karla,sans-serif" font-size="13" font-weight="700" fill="#3f3229">Fallback story bank</text>
+        <text x="610" y="696" text-anchor="middle" font-family="Karla,sans-serif" font-size="12" fill="#7a6a57">5 pre-written stories — the safety net when Claude is unreachable</text>
+      </g>
+
+      <!-- ===== Zone 3: Anthropic boxes ===== -->
+      <g>
+        <rect x="960" y="150" width="440" height="190" rx="12" fill="#fffdf8" stroke="#93a8bd" stroke-width="2"/>
+        <text x="1180" y="178" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="13" font-weight="500" fill="#3f3229">POST /v1/messages</text>
+        <text x="1180" y="202" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="12" fill="#3a4d63">model: claude-sonnet-5</text>
+        <text x="1180" y="222" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="12" fill="#3a4d63">thinking: disabled · max_tokens: 700</text>
+        <text x="1180" y="250" text-anchor="middle" font-family="Karla,sans-serif" font-size="12" fill="#7a6a57">system: bedtime-story safety + style rules</text>
+        <text x="1180" y="268" text-anchor="middle" font-family="Karla,sans-serif" font-size="12" fill="#7a6a57">headers: x-api-key, anthropic-version,</text>
+        <text x="1180" y="286" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11.5" fill="#3a4d63">anthropic-dangerous-direct-browser-access</text>
+        <text x="1180" y="316" text-anchor="middle" font-family="Karla,sans-serif" font-size="11.5" fill="#93a8bd">(opt-in header Anthropic provides for exactly this)</text>
+      </g>
+
+      <g>
+        <rect x="960" y="380" width="440" height="90" rx="12" fill="#fffdf8" stroke="#93a8bd" stroke-width="2"/>
+        <text x="1180" y="412" text-anchor="middle" font-family="Karla,sans-serif" font-size="13" font-weight="700" fill="#3f3229">Generates a 300–350 word</text>
+        <text x="1180" y="432" text-anchor="middle" font-family="Karla,sans-serif" font-size="13" font-weight="700" fill="#3f3229">calming, age-appropriate story</text>
+        <text x="1180" y="452" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="#3a4d63">→ content: [{ type: "text", text: "…" }]</text>
+      </g>
+
+      <!-- ===== arrows: happy path (ink) ===== -->
+      <line x1="260" y1="180" x2="336" y2="175" stroke="#3f3229" stroke-width="2" marker-end="url(#arrowInk)"/>
+
+      <line x1="480" y1="220" x2="505" y2="266" stroke="#3f3229" stroke-width="2" marker-end="url(#arrowInk)"/>
+      <text x="500" y="245" font-family="Karla,sans-serif" font-size="11" fill="#7a6a57">click "Generate"</text>
+
+      <line x1="760" y1="220" x2="760" y2="266" stroke="#7a6a57" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arrowInk)"/>
+      <text x="768" y="248" font-family="Karla,sans-serif" font-size="11" fill="#7a6a57">reads saved key</text>
+
+      <line x1="880" y1="320" x2="956" y2="240" stroke="#3f3229" stroke-width="2.5" marker-end="url(#arrowInk)"/>
+      <text x="895" y="270" font-family="Karla,sans-serif" font-size="12" font-weight="700" fill="#3f3229">① fetch() POST</text>
+
+      <line x1="1180" y1="340" x2="1180" y2="376" stroke="#3f3229" stroke-width="2" marker-end="url(#arrowInk)"/>
+
+      <line x1="960" y1="420" x2="884" y2="345" stroke="#3f3229" stroke-width="2.5" marker-end="url(#arrowInk)"/>
+      <text x="895" y="405" font-family="Karla,sans-serif" font-size="12" font-weight="700" fill="#3f3229">② story text — or error</text>
+
+      <line x1="340" y1="300" x2="264" y2="500" stroke="#a86f34" stroke-width="2" marker-end="url(#arrowOchre)"/>
+      <text x="270" y="330" font-family="Karla,sans-serif" font-size="11.5" fill="#7a6a57" transform="rotate(70 270 330)">renders + narrates</text>
+
+      <line x1="610" y1="380" x2="610" y2="426" stroke="#3f3229" stroke-width="2" marker-end="url(#arrowInk)"/>
+      <text x="618" y="405" font-family="Karla,sans-serif" font-size="11" fill="#7a6a57">on success</text>
+
+      <!-- ===== arrows: error path (rust) ===== -->
+      <line x1="340" y1="350" x2="264" y2="690" stroke="#bd5f43" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrowRust)"/>
+      <text x="255" y="420" font-family="Karla,sans-serif" font-size="11.5" fill="#bd5f43" transform="rotate(72 255 420)">on failure: shows error</text>
+
+      <path d="M 150,650 C 292,610 292,330 340,300" fill="none" stroke="#bd5f43" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrowRust)"/>
+      <text x="296" y="600" font-family="Karla,sans-serif" font-size="12" font-weight="700" fill="#bd5f43">Retry</text>
+
+      <!-- ===== arrow: fallback path (ochre, dotted, never crosses boundary) ===== -->
+      <line x1="260" y1="720" x2="356" y2="690" stroke="#a86f34" stroke-width="2" stroke-dasharray="2 5" marker-end="url(#arrowOchre)"/>
+      <text x="262" y="748" font-family="Karla,sans-serif" font-size="11.5" fill="#a86f34">"use a story from the basket" — bypasses Claude entirely</text>
+
+      <!-- ===== legend ===== -->
+      <g font-family="Karla,sans-serif" font-size="12" fill="#3f3229">
+        <line x1="60" y1="852" x2="100" y2="852" stroke="#3f3229" stroke-width="2"/>
+        <text x="108" y="856">data flow</text>
+
+        <line x1="230" y1="852" x2="270" y2="852" stroke="#bd5f43" stroke-width="2" stroke-dasharray="6 5"/>
+        <text x="278" y="856">error path</text>
+
+        <line x1="400" y1="852" x2="440" y2="852" stroke="#a86f34" stroke-width="2" stroke-dasharray="2 5"/>
+        <text x="448" y="856">offline fallback (no network)</text>
+
+        <line x1="680" y1="852" x2="720" y2="852" stroke="#7a6a57" stroke-width="2" stroke-dasharray="6 6"/>
+        <text x="728" y="856">trust boundary</text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="section">
+    <h2>Design tradeoffs</h2>
+    <div class="cards">
+      <div class="card tradeoff">
+        <h3>No backend, ever</h3>
+        <p>Everything — form logic, the API call, narration, downloads, fallback content — runs in one static HTML file. That makes the app free to host and trivial to deploy, but trades away anything that needs a server: hiding a secret, metering usage, or syncing data across devices. All three were out of scope for a personal tool, so the trade was easy.</p>
+      </div>
+      <div class="card tradeoff">
+        <h3>Bring-your-own API key, stored client-side</h3>
+        <p>Rejected hardcoding a key into the repo (leaks in public source) and rejected a secret-holding proxy (reintroduces a server for a hobby project). Landed on: paste your key in, it lives only in that browser's <span class="mono">localStorage</span>. Visible in that browser's dev tools while in use — fine for one person, wrong for a multi-tenant product.</p>
+      </div>
+      <div class="card tradeoff">
+        <h3>Sonnet, thinking disabled</h3>
+        <p>A 350-word bedtime story doesn't need an extended-reasoning pass. Skipping it and using Sonnet over Opus trades a sliver of prose polish for meaningfully lower latency and cost on every request — the right call against a "under 10 seconds, kid is waiting" target.</p>
+      </div>
+      <div class="card tradeoff">
+        <h3>No streaming</h3>
+        <p><span class="mono">max_tokens: 700</span> is well under the point where streaming is needed to dodge timeouts. Skipping it simplifies the state machine at the cost of a slightly longer pause before anything renders — acceptable since narration can't start until the story is complete anyway.</p>
+      </div>
+      <div class="card tradeoff">
+        <h3>Soft guardrails, not a hard filter</h3>
+        <p>Content safety leans on the system prompt and Claude's own judgment (a "scary monster" becomes gentle) rather than a client-side keyword blocklist. Less deterministic, far less brittle — and a blocklist would always be incomplete anyway.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Technical insights</h2>
+    <div class="cards">
+      <div class="card insight">
+        <h3>The trust boundary is the whole story</h3>
+        <p>Normally the client/server line is where secrets live. With no server, the only boundary that matters is "this browser" vs. "the internet" — and the one thing crossing it, the API key over HTTPS straight to Anthropic, is exactly the one thing that must never sit in committed source.</p>
+      </div>
+      <div class="card insight">
+        <h3>The browser-access header is sanctioned, not a hack</h3>
+        <p><span class="mono">anthropic-dangerous-direct-browser-access</span> is Anthropic's own opt-in for calling the API straight from a browser. It's the supported path for a single-user tool like this, not an unsupported workaround.</p>
+      </div>
+      <div class="card insight">
+        <h3>Client-only fallbacks compound reliability for free</h3>
+        <p>TTS, downloads, and the 5-story fallback bank all work with the network off. Since avoiding a backend already forces everything client-side, the "still basically works" path costs nothing extra to build — the app ends up more resilient than its one external dependency suggests.</p>
+      </div>
+      <div class="card insight">
+        <h3>DOM injection is structurally prevented</h3>
+        <p>Story text and the child's name are inserted via <span class="mono">textContent</span>, never <span class="mono">innerHTML</span> — so even an adversarial theme string can't execute as markup, regardless of how thorough the input sanitization happens to be. Defense in depth, not a single filter.</p>
+      </div>
+      <div class="card insight">
+        <h3>The error/fallback path was verified, not assumed</h3>
+        <p>Before shipping, the full retry → fallback flow was driven end-to-end with a fake API key via a scripted browser. That caught a real bug — a CSS rule silently overriding the <span class="mono">hidden</span> attribute on the "key saved" banner — that a code read-through alone hadn't surfaced.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Risk management</h2>
+    <table class="risk">
+      <tr><th>Risk</th><th>Mitigation</th><th>Residual risk</th></tr>
+      <tr>
+        <td>API key exposure</td>
+        <td>Never committed to source; entered client-side; stored in <span class="mono">localStorage</span> only</td>
+        <td>Visible in that browser's dev tools/storage while in use — use a key with a low spend limit</td>
+      </tr>
+      <tr>
+        <td>Cost runaway</td>
+        <td>No backend means no shared key to abuse; each user supplies and pays for their own key</td>
+        <td>None beyond that user's own usage</td>
+      </tr>
+      <tr>
+        <td>API outage right at bedtime</td>
+        <td>Calm error copy, one-click retry, and an offline fallback story bank with zero network dependency</td>
+        <td>Fallback bank is only 5 stories — repetitive under heavy reliance</td>
+      </tr>
+      <tr>
+        <td>Off-brief or unsafe story content</td>
+        <td>System prompt enforces calm, G-rated, sleep-ending content; scary-keyword themes get softened automatically</td>
+        <td>No hard filter — a determined adversarial prompt could theoretically slip past a soft instruction</td>
+      </tr>
+      <tr>
+        <td>Browser TTS unsupported or low quality</td>
+        <td>Feature-detected with a graceful fallback to text-only reading</td>
+        <td>Voice naturalness is OS/browser-dependent and outside the app's control</td>
+      </tr>
+      <tr>
+        <td>Public repo, no backend</td>
+        <td>Verified no secrets or config files existed before the first push; <span class="mono">.gitignore</span> covers local tool settings</td>
+        <td>None currently — no other secrets exist anywhere in this architecture</td>
+      </tr>
+    </table>
+  </div>
+
+  <footer>BabyBedtimeTeller — architecture as of the first shipped version.</footer>
+
+</div>
+</body>
+</html>
