@@ -75,10 +75,12 @@
   .key-saved{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
   .key-saved[hidden], #keyForm[hidden]{ display:none; }
   .key-saved p{ margin:0; font-weight:700; }
+  .key-saved-actions{ display:flex; gap:16px; }
   .key-saved button{
     background:none; border:none; text-decoration:underline; text-underline-offset:3px;
     font-family:'Karla'; font-weight:700; font-size:.9rem; color:var(--ink-soft); cursor:pointer; padding:4px;
   }
+  .key-saved button.danger{ color:var(--rust); }
   .key-row{ display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
   .key-row .field{ flex:1; min-width:220px; margin-bottom:0; }
   .key-row .cta{ width:auto; margin-top:0; white-space:nowrap; }
@@ -206,7 +208,10 @@
     <span class="tag">the key</span>
     <div id="keySaved" class="key-saved" hidden>
       <p>🔑 Key saved — ready to stitch a story.</p>
-      <button id="changeKeyBtn" type="button">Change key</button>
+      <div class="key-saved-actions">
+        <button id="changeKeyBtn" type="button">Change key</button>
+        <button id="deleteKeyBtn" type="button" class="danger">Delete key</button>
+      </div>
     </div>
     <div id="keyForm">
       <div class="key-row">
@@ -214,7 +219,7 @@
           <label for="apiKey">Your Claude API key</label>
           <input id="apiKey" type="password" placeholder="sk-ant-...">
         </div>
-        <button class="cta" id="saveKeyBtn" type="button">Save key</button>
+        <button class="cta" id="saveKeyBtn" type="button">Add key</button>
       </div>
       <p class="key-note">Stored only in this browser (localStorage) — never written into this site's code, never sent anywhere except Anthropic's API. Get a key at console.anthropic.com.</p>
     </div>
@@ -356,6 +361,7 @@
   var apiKeyInput = document.getElementById('apiKey');
   var saveKeyBtn = document.getElementById('saveKeyBtn');
   var changeKeyBtn = document.getElementById('changeKeyBtn');
+  var deleteKeyBtn = document.getElementById('deleteKeyBtn');
 
   var ttsSupported = ('speechSynthesis' in window);
   var lastStoryText = '';
@@ -364,6 +370,7 @@
   // ---------- API key handling ----------
   function getApiKey(){ return (localStorage.getItem(STORAGE_KEY) || '').trim(); }
   function setApiKey(k){ localStorage.setItem(STORAGE_KEY, k); }
+  function clearApiKey(){ localStorage.removeItem(STORAGE_KEY); }
 
   function refreshKeyUI(){
     if (getApiKey()){
@@ -387,6 +394,11 @@
     keySaved.hidden = true;
     keyForm.hidden = false;
     apiKeyInput.focus();
+  });
+  deleteKeyBtn.addEventListener('click', function(){
+    if (!window.confirm('Delete the saved API key from this browser? You\'ll need to add it again before stitching another story.')) return;
+    clearApiKey();
+    refreshKeyUI();
   });
 
   // ---------- stage switching ----------
